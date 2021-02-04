@@ -1,4 +1,4 @@
-# BioSeq
+# SeqUtils
 
 This is a list of publicaitons on biological sequences including various algorithms and codes.
 
@@ -9,3 +9,5 @@ This is a list of publicaitons on biological sequences including various algorit
 ## Sequence Encoding <a name="SeqEncoding"></a>
 
 **PseDNC**
+
+## GTF parse
