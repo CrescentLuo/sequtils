@@ -91,5 +91,5 @@ if __name__ == '__main__':
     sample_list = as_profile.columns[6::2]
     print("Table containing {} sample(s) and {} event(s) for each sample:".format(len(sample_list), as_profile.shape[0]))
     print("including: {}".format(",".join(sample_list)))
-    as_profile_filtered = as_profile[as_profile.apply(clean_AS, sample_list,axis=1)]
+    as_profile_filtered = as_profile[as_profile.apply(clean_AS, args=(sample_list),axis=1)]
     print("{} event(s) passed the filtering.".format(as_profile_filtered.shape[0]))
