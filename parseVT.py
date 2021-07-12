@@ -88,7 +88,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     as_profile = pd.read_table(args.input)
-    sample_list = as_profile.columns[6,:,2]
+    sample_list = as_profile.columns[6::2]
     print("Table containing {} sample(s) and {} event(s) for each sample:".format(len(sample_list), as_profile.shape[0]))
     print("including: {}".format(",".join(sample_list)))
     as_profile_filtered = as_profile.filter(clean_AS, sample_list,axis=1)
