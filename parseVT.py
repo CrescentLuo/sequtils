@@ -50,7 +50,7 @@ def check_ir_thres(event, sample):
     return check_res
 
 def clean_AS(event, sample_list, min_prop=0.5):
-    complex = event['complex']
+    complex = event['COMPLEX']
     is_ce = complex in ['S', 'C1', 'C2', 'C3', 'ANN']
     is_ir = complex.contains('IR')
     is_other = complex in ['Alt5', 'Alt3', 'MIC']
