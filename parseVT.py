@@ -34,10 +34,10 @@ def check_ce_thres(event,sample):
     return check_res
 
 def check_other_thres(event,sample):
-     # Allowable coverage score (score 1) for "Alt5", "Alt3", "MIC"
+    # Allowable coverage score (score 1) for "Alt5", "Alt3", "MIC"
     cov_thres = ['SOK', 'OK', 'LOW']
     score = event[sample+'-Q'].split(',')
-    check_res = score[0] in cov_thres
+    check_res = score[0] in cov_thres 
     return check_res
 
 def check_ir_thres(event, sample):
@@ -51,19 +51,22 @@ def check_ir_thres(event, sample):
 
 def clean_AS(event, sample_list, min_prop=0.5):
     complex = event['COMPLEX']
+    
     is_ce = complex in ['S', 'C1', 'C2', 'C3', 'ANN']
-    is_ir = complex.find('IR')
+    is_ir = complex in ['IR']
     is_other = complex in ['Alt5', 'Alt3', 'MIC']
-
-    if is_ce:
-        check_list = [check_ce_thres(event,sample) for sample in sample_list]
-    if is_ir:
-        check_list = [check_ir_thres(event,sample) for sample in sample_list]
-    if is_other:
-        check_list = [check_other_thres(event,sample) for sample in sample_list]
-
-    check_prop = sum(check_list) / len(sample_list) >= min_prop
-    return check_prop
+    check_complex = is_ce or is_ir or is_other
+    if check_complex:
+        if is_ce:
+            check_list = [check_ce_thres(event,sample) for sample in sample_list]
+        if is_ir:
+            check_list = [check_ir_thres(event,sample) for sample in sample_list]
+        if is_other:
+            check_list = [check_other_thres(event,sample) for sample in sample_list]
+        check_prop = sum(check_list) / len(sample_list) >= min_prop
+        return check_prop
+    else:
+        return check_complex
 
 
 
