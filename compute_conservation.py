@@ -15,6 +15,7 @@ def arg_parser():
 def get_phastcons(interval, phastcons_bw, nBins=10):
 
     chrom = interval['chrom']
+    
     start = int(interval['start'])
     end = int(interval['end'])
     interval['phastcons_bin'+'(bins={})'.format(nBins)] = ','.join([str(s) for s in phastcons_bw.stats(chrom,start,end,nBins=nBins)])
