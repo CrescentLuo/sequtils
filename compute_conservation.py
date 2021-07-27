@@ -8,9 +8,6 @@ import swifter
 # http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons7way/hg38.phastCons7way.bw
 # http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phyloP7way/hg38.phyloP7way.bw
 
-def arg_parser():
-    
-    return args
 
 def get_phastcons(interval, phastcons_bw, nBins=10):
 
