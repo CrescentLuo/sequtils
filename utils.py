@@ -70,20 +70,21 @@ def assign_cds_to_ts(gtf_ts, gtf_cds):
         ts_cds_dict[transcript_id].append(idx)
     for idx in gtf_ts:
         transcript_id = gtf_ts[idx]['transcript_id']
-        for cds_idx in ts_cds_dict[transcript_id]:
-            cds_start = int(gtf_cds[cds_idx]['start'])
-            cds_end = int(gtf_cds[cds_idx]['end'])
-            ts_cds_start = int(gtf_ts[idx]['cds_start'])
-            ts_cds_end = int(gtf_ts[idx]['cds_end'])
-            ts_start = int(gtf_ts[idx]['start'])
-            if ts_cds_start == ts_start:
-                gtf_ts[idx]['cds_start'] = cds_start
-                gtf_ts[idx]['cds_end'] = cds_end
-            else:
-                if cds_start < ts_cds_start:
+        if transcript_id in ts_cds_dict:
+            for cds_idx in ts_cds_dict[transcript_id]:
+                cds_start = int(gtf_cds[cds_idx]['start'])
+                cds_end = int(gtf_cds[cds_idx]['end'])
+                ts_cds_start = int(gtf_ts[idx]['cds_start'])
+                ts_cds_end = int(gtf_ts[idx]['cds_end'])
+                ts_start = int(gtf_ts[idx]['start'])
+                if ts_cds_start == ts_start:
                     gtf_ts[idx]['cds_start'] = cds_start
-                if cds_end > ts_cds_end:
                     gtf_ts[idx]['cds_end'] = cds_end
+                else:
+                    if cds_start < ts_cds_start:
+                        gtf_ts[idx]['cds_start'] = cds_start
+                    if cds_end > ts_cds_end:
+                        gtf_ts[idx]['cds_end'] = cds_end
     gtf_ts = pd.DataFrame.from_dict(gtf_ts, orient='index')
     return gtf_ts
 
