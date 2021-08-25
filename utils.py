@@ -95,3 +95,15 @@ def parse_gtf(gtf_file):
     gtf_exon = gtf[gtf['feature']=='exon'].swifter.apply(parse_gtf_attrs,axis=1)
     gtf_CDS = gtf[gtf['feature']=='CDS'].swifter.apply(parse_gtf_attrs,axis=1)
     return gtf_gene, gtf_transcript, gtf_exon,gtf_CDS
+
+def check_intersect(coord_1, coord_2, zero_based_1=True, zero_based_2=True):
+    if zero_based_1:
+        coord_1[0] +=1
+    if zero_based_2:
+        coord_2[0] +=1
+    if coord_1[1] < coord_2[0] or coord_1[0] > coord_2[1]:
+        return False
+    else:
+        return True
+def one_based_start(s):
+    return s+1
