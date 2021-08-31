@@ -121,23 +121,21 @@ def get_alt_exons(gtf_ts, gtf_exon):
                 continue
 
             gene_id = gtf_exon[exon_idx]['gene_id']
-            exon_id = gtf_exon[exon_idx]['exon_id']
+            exon_id = gtf_exon[exon_idx]['seqname'] + str(gtf_exon[exon_idx]['start']) + str(gtf_exon[exon_idx]['end']) + gtf_exon[exon_idx]['strand']
             if exon_id not in exon_usage:
                 exon_usage[exon_id] = 0
             exon_usage[exon_id] += 1
     alt_exon_idx = list()
     alt_exon_coord = set()
     for idx in gtf_exon:
-        exon_id = gtf_exon[idx]['exon_id']
+        exon_id = gtf_exon[idx]['seqname'] + str(gtf_exon[idx]['start']) + str(gtf_exon[idx]['end']) + gtf_exon[idx]['strand']
         gene_id = gtf_exon[idx]['gene_id']
-        exon_coord = gtf_exon[idx]['seqname'] + str(gtf_exon[idx]['start']) + str(gtf_exon[idx]['end'])
         if exon_id in exon_usage and gene_id in gene_ts_cnt:
             if exon_usage[exon_id] != gene_ts_cnt[gene_id]:
-                if exon_coord not in alt_exon_coord:
+                if exon_id not in alt_exon_coord:
                     alt_exon_idx.append(idx)
-                    alt_exon_coord.add(exon_coord)
+                    alt_exon_coord.add(exon_id)
                 
-
     return alt_exon_idx
 
 # Calculate the correct CDS region at trascript level.
