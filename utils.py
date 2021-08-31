@@ -1,7 +1,12 @@
 import pandas as pd
 import swifter
 import re
+
+# nucleotides sequence utils
+
+
 def reverse_complement(seq):
+    # return reverse complementary sequence of input
     try:
         assert set(seq).issubset(set("ACGTN"))
     except AssertionError:
@@ -11,13 +16,41 @@ def reverse_complement(seq):
         )
     return ''.join('TGCAN'['ACGTN'.index(s)] for s in seq.upper()[::-1])
 
+# Annotation Parser
+#   Function: parse_gtf
+#   Input - GTF file from GENCODE annotation database
+#   Output:
+#       1. Gene-level features: gene_id, gene_type, gene_name extracted from attributes column
+#       2. Transcript-level features: gene_id, gene_type, gene_name, transcript_id, 
+#           transcript_support_level extracted from attributes column, cds_start and cds_end 
+#           assigned the same as transcript_start.
+#       3. Exon-level features: gene_id, gene_type, gene_name, transcript_id, exon_id,
+#           exon_number extracted from attributes column.
+#       4. CDS-level features: same as exon-level features.
+
+def parse_gtf(gtf_file):
+    gtf = pd.read_csv(
+        gtf_file, sep='\t', comment='#',
+        names=['seqname', 'source', 'feature', 'start', 'end', 'score',
+               'strand', 'frame', 'attribute'])
+    gtf_gene = gtf[gtf['feature'] == 'gene'].swifter.apply(
+        parse_gtf_attrs, axis=1)
+    gtf_transcript = gtf[gtf['feature'] ==
+                         'transcript'].swifter.apply(parse_gtf_attrs, axis=1)
+    gtf_exon = gtf[gtf['feature'] == 'exon'].swifter.apply(
+        parse_gtf_attrs, axis=1)
+    gtf_CDS = gtf[gtf['feature'] == 'CDS'].swifter.apply(
+        parse_gtf_attrs, axis=1)
+    return gtf_gene, gtf_transcript, gtf_exon, gtf_CDS
+
+
 def parse_gtf_attrs(feature):
     feature_type = feature['feature']
     attrs = feature['attribute']
     feature_start = feature['start']
     regex = r"(\S+\s\S+;)"
     attrs_dict = dict()
-    for attr in re.finditer(regex,attrs):
+    for attr in re.finditer(regex, attrs):
         attr_key = attr[1].split()[0]
         attr_val = attr[1].split()[1].rstrip(';').strip('"')
         attrs_dict[attr_key] = attr_val
@@ -49,7 +82,7 @@ def parse_gtf_attrs(feature):
         feature['exon_id'] = attrs_dict['exon_id']
         feature['exon_number'] = int(attrs_dict['exon_number'])
     if feature_type == 'CDS':
-        feature['gene_id'] = attrs_dict['gene_id'] 
+        feature['gene_id'] = attrs_dict['gene_id']
         feature['gene_type'] = attrs_dict['gene_type']
         feature['gene_name'] = attrs_dict['gene_name']
         feature['transcript_id'] = attrs_dict['transcript_id']
@@ -58,11 +91,61 @@ def parse_gtf_attrs(feature):
 
     return feature
 
+# todo:Extract introns from transcript 
+# Extract alternative exons from annotation
+# input gtf_exon is an instance of pandas dataframe
+# input gtf_ts 
+def get_alt_exons(gtf_ts, gtf_exon):
+    gtf_exon = gtf_exon.to_dict('index')
+    gtf_ts = gtf_ts.to_dict('index')
+    gene_ts_cnt = dict()
+    exon_usage = dict()
+    ts_exon_dict = dict()
+    for idx in gtf_exon:
+        transcript_id = gtf_exon[idx]['transcript_id']
+        if transcript_id not in ts_exon_dict:
+            ts_exon_dict[transcript_id] = list()
+        ts_exon_dict[transcript_id].append(idx)
+    
+    for idx in gtf_ts:
+        gene_id = gtf_ts[idx]['gene_id']
+        if gene_id not in gene_ts_cnt:
+            gene_ts_cnt[gene_id] = 0
+        gene_ts_cnt[gene_id] += 1
+    
+    for transcript_id in ts_exon_dict:
+        exon_set = sorted(ts_exon_dict[transcript_id])
+        exon_num = len(exon_set)
+        for i, exon_idx in enumerate(exon_set):
+            if i == 1 or i == exon_num - 1:
+                continue
+
+            gene_id = gtf_exon[exon_idx]['gene_id']
+            exon_id = gtf_exon[exon_idx]['exon_id']
+            if exon_id not in exon_usage:
+                exon_usage[exon_id] = 0
+            exon_usage[exon_id] += 1
+    alt_exon_idx = list()
+    alt_exon_coord = set()
+    for idx in gtf_exon:
+        exon_id = gtf_exon[idx]['exon_id']
+        gene_id = gtf_exon[idx]['gene_id']
+        exon_coord = gtf_exon[idx]['seqname'] + str(gtf_exon[idx]['start']) + str(gtf_exon[idx]['end'])
+        if exon_id in exon_usage and gene_id in gene_ts_cnt:
+            if exon_usage[exon_id] != gene_ts_cnt[gene_id]:
+                if exon_coord not in alt_exon_coord:
+                    alt_exon_idx.append(idx)
+                    alt_exon_coord.add(exon_coord)
+                
+
+    return alt_exon_idx
+
+# Calculate the correct CDS region at trascript level.
 def assign_cds_to_ts(gtf_ts, gtf_cds):
     gtf_ts = gtf_ts.to_dict('index')
     gtf_cds = gtf_cds.to_dict('index')
     ts_cds_dict = dict()
-    
+
     for idx in gtf_cds:
         transcript_id = gtf_cds[idx]['transcript_id']
         if transcript_id not in ts_cds_dict:
@@ -88,22 +171,17 @@ def assign_cds_to_ts(gtf_ts, gtf_cds):
     gtf_ts = pd.DataFrame.from_dict(gtf_ts, orient='index')
     return gtf_ts
 
-def parse_gtf(gtf_file):
-    gtf = pd.read_csv(gtf_file, sep='\t', comment='#', names=['seqname','source','feature','start','end','score','strand','frame','attribute'])
-    gtf_gene = gtf[gtf['feature']=='gene'].swifter.apply(parse_gtf_attrs,axis=1)
-    gtf_transcript = gtf[gtf['feature']=='transcript'].swifter.apply(parse_gtf_attrs,axis=1)
-    gtf_exon = gtf[gtf['feature']=='exon'].swifter.apply(parse_gtf_attrs,axis=1)
-    gtf_CDS = gtf[gtf['feature']=='CDS'].swifter.apply(parse_gtf_attrs,axis=1)
-    return gtf_gene, gtf_transcript, gtf_exon,gtf_CDS
-
+# Coordinates transformation
 def check_intersect(coord_1, coord_2, zero_based_1=True, zero_based_2=True):
     if zero_based_1:
-        coord_1[0] +=1
+        coord_1[0] += 1
     if zero_based_2:
-        coord_2[0] +=1
+        coord_2[0] += 1
     if coord_1[1] < coord_2[0] or coord_1[0] > coord_2[1]:
         return False
     else:
         return True
+
+
 def one_based_start(s):
     return s+1
