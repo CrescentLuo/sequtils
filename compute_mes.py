@@ -37,9 +37,17 @@ def compute_mes(interval, matrix5, matrix3, genome):
     if set(seq5).issubset('ACGT') and set(seq3).issubset('ACGT'):
             mes5 = maxent_fast.score5(seq5, matrix=matrix5)
             mes3 = maxent_fast.score3(seq3, matrix=matrix3)
-            return name_format_str.format(**dict(seq5=seq5,mes5=mes5,seq3=seq3,mes3=mes3))
+            interval['seq5'] = seq5
+            interval['mes5'] = mes5
+            interval['seq3'] = seq3
+            interval['mes3'] = mes3
+            
     else:
-        return name_format_str.format(**dict(seq5=seq5,mes5='NA',seq3=seq3,mes3='NA'))
+        interval['seq5'] = seq5
+        interval['mes5'] = 'NA'
+        interval['seq3'] = seq3
+        interval['mes3'] = 'NA'
+    return interval
 
 if __name__ == '__main__':
     args = parse_args()
@@ -49,8 +57,7 @@ if __name__ == '__main__':
     matrix5 = load_matrix5()
     matrix3 = load_matrix3()
 
-    mes_record['mes'] = mes_record.swifter.apply(compute_mes, matrix5=matrix5, matrix3=matrix3, genome=args.genome, axis=1)
-    mes_record[['seq5', 'mes5', 'seq3','mes3']] = mes_record['mes'].str.split(r':|\|',expand=True, replace=True)
+    mes_record = mes_record.swifter.apply(compute_mes, matrix5=matrix5, matrix3=matrix3, genome=args.genome, axis=1)
     mes_record['mes5'] = pd.to_numeric(mes_record['mes5'])
     mes_record['mes3'] = pd.to_numeric(mes_record['mes3'])
     mes_mean = mes_record[['mes5', 'mes3']].mean()

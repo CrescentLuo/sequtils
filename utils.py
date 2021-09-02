@@ -117,7 +117,7 @@ def get_alt_exons(gtf_ts, gtf_exon):
         exon_set = sorted(ts_exon_dict[transcript_id])
         exon_num = len(exon_set)
         for i, exon_idx in enumerate(exon_set):
-            if i == 1 or i == exon_num - 1:
+            if i == 0 or i == exon_num - 1:
                 continue
 
             gene_id = gtf_exon[exon_idx]['gene_id']
@@ -137,6 +137,46 @@ def get_alt_exons(gtf_ts, gtf_exon):
                     alt_exon_coord.add(exon_id)
                 
     return alt_exon_idx
+
+
+# extract introns from annotation
+def get_introns(gtf_ts, gtf_exon):
+    gtf_ts = gtf_ts.to_dict('index')
+    gtf_exon = gtf_exon.to_dict('index')
+    ts_exon_dict = dict()
+    for idx in gtf_exon:
+        transcript_id = gtf_exon[idx]['transcript_id']
+        if transcript_id not in ts_exon_dict:
+            ts_exon_dict[transcript_id] = list()
+        ts_exon_dict[transcript_id].append(idx)
+    
+    for ts_idx in gtf_ts:
+        transcript_id = gtf_ts[ts_idx]['transcript_id']
+        exon_set = sorted(ts_exon_dict[transcript_id])
+        exon_num = len(exon_set)
+        if exon_num < 2:
+            continue
+        intron_chrom = gtf_ts[ts_idx]['seqname']
+        intron_strand = gtf_ts[ts_idx]['strand']
+        intron_start = 0
+        intron_end = 0
+        for i, exon_idx in enumerate(exon_set):
+            if i == 0:
+                if intron_strand == '+':
+                    intron_start = gtf_exon[exon_idx]['end']
+                else:
+                    intron_end = gtf_exon[exon_idx]['start']
+            else:
+                if intron_strand == '+':
+                    intron_end = gtf_exon[exon_idx]['start']
+                else:
+                    intron_start = gtf_exon[exon_idx]['end']
+                intron_name = transcript_id+'_'+str(i)
+                yield '{}\t{}\t{}\t{}\t{}\t{}\n'.format(intron_chrom, intron_start, intron_end, intron_name, '.', intron_strand)
+                if intron_strand == '+':
+                    intron_start = gtf_exon[exon_idx]['end']
+                else:
+                    intron_end = gtf_exon[exon_idx]['start']
 
 # Calculate the correct CDS region at trascript level.
 def assign_cds_to_ts(gtf_ts, gtf_cds):

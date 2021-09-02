@@ -47,11 +47,12 @@ def track_ts(
     exon, genome, cr_ts, gtf_ts, gtf_exon, gtf_ts_exon, gtf_ts_cds,
         gtf_cds):
     coden_len = 3
-    exon_s = exon['start']
-    exon_e = exon['end']
+    exon_s = int(exon['start'])
+    exon_e = int(exon['end'])
     exon_chrom = exon['chrom']
     exon_strand = exon['strand']
     # get the corresponding gene
+    impact_isoform = set()
     for ts_s, ts_e, ts_idx in cr_ts.overlap(
             exon_chrom, exon_s, exon_e):
         transcript_id = gtf_ts[ts_idx]['transcript_id']
@@ -61,8 +62,10 @@ def track_ts(
             continue
         # skip transcripts without cds region (cds_start == cds_end)
         if gtf_ts[ts_idx]['cds_start'] == gtf_ts[ts_idx]['cds_end']:
+            impact_isoform.add('False-wo-CDS')
             continue
         elif not check_intersect([exon_s, exon_e], [gtf_ts[ts_idx]['cds_start'],gtf_ts[ts_idx]['cds_end']], 1,0):
+            impact_isoform.add('False-out-CDS')
             continue
         c1_idx = -1
         c2_idx = -1
@@ -70,16 +73,22 @@ def track_ts(
         for idx in sorted(gtf_ts_cds[transcript_id]):
             ts_exon_s = gtf_cds[idx]['start']
             ts_exon_e = gtf_cds[idx]['end']
-            # print("{}\t{}<--{}-->{}\t{}".format(ts_exon_s,ts_exon_e,exon_strand,exon_s,exon_e))
             if exon_strand == '+':
                 last_eej_idx = idx
             else:
                 if last_eej_idx == -1:
                     last_eej_idx = idx
             if ts_exon_e < one_based_start(exon_s):
-                c1_idx = idx
-            if ts_exon_s > exon_e and c2_idx == -1:
-                c2_idx = idx
+                if exon_strand == '+':
+                    c1_idx = idx
+                elif c1_idx==-1:
+                    c1_idx = idx
+            if ts_exon_s > exon_e:
+                if exon_strand == '-':
+                    c2_idx = idx
+                elif c2_idx==-1:
+                    c2_idx = idx
+                    
         if c1_idx != -1 and c2_idx != -1:
             c1_cds = gtf_cds[c1_idx]
             c2_cds = gtf_cds[c2_idx]
@@ -87,7 +96,17 @@ def track_ts(
             c2_frame = int(c2_cds['frame'])
             c1_frame = int(c1_cds['frame'])
             if c2_frame == 0:
-                exon_seq = extract_seq(genome, exon_chrom, exon_s, exon_e, 1)
+                if exon_strand == '+':
+                    c1_residue = (
+                        c1_cds['end'] - c1_cds['start'] - c1_frame + 1) % coden_len
+                else:
+                    c1_residue = c1_frame
+                if c1_residue == 0:
+                    exon_seq = extract_seq(genome, exon_chrom, exon_s, exon_e, 1)
+                else:
+                    exon_seq_c1 = extract_seq(genome, exon_chrom, c1_cds['start'],c1_cds['end'], 0)[-c1_residue:]
+                    exon_seq = exon_seq_c1 + genome[exon_chrom][exon_s: exon_e]
+
             else:
                 if exon_strand == '+':
                     c1_residue = (
@@ -99,18 +118,25 @@ def track_ts(
                 exon_seq_c1 = extract_seq(genome, exon_chrom, c1_cds['start'],c1_cds['end'], 0)[-c1_residue:]
                 exon_seq_c2 = extract_seq(genome, exon_chrom, c2_cds['start'],c2_cds['end'], 0)[:c2_frame]
                 exon_seq = exon_seq_c1 + genome[exon_chrom][exon_s: exon_e] + exon_seq_c2
-            print(exon_seq)
             if exon_strand == '-':
                 exon_seq = reverse_complement(exon_seq)
                 # frame shift
             ptc_pos, ptc_seq = search_ptc(exon_seq)
             if ptc_pos != -1:
-                return ptc_seq
+                impact_isoform.add(ptc_seq)
             if len(exon_seq) % coden_len != 0:
-                return 'frame_shift'
-
+                impact_isoform.add('frame shift_{}_{}'.format(len(exon_seq),transcript_id))
+            else:
+                impact_isoform.add('False')
             #
-    return False
+        else:
+            if c1_idx == -1 or c2_idx == -1:
+                impact_isoform.add('False')
+            else:
+                impact_isoform.add('Not Found-{}_{}_{}_{}'.format(c1_idx,c2_idx, ts_s, ts_e))
+    if len(impact_isoform) ==0:
+        impact_isoform.add('False')
+    return ','.join(impact_isoform)
 
 
 def get_dist_last_eej(ts_idx, gtf_ts, gtf_exon, gtf_ts_exon):
@@ -148,19 +174,29 @@ if __name__ == '__main__':
     gtf_ts = gtf_ts[gtf_ts['gene_type'] == 'protein_coding']
     gtf_ts = gtf_ts[gtf_ts['transcript_support_level'].isin(['1',
                                                           '2'])]
-    cr_ts = build_cgranges(gtf_ts)
-    gtf_ts = gtf_ts.to_dict('index')
+    
     gtf_exon = pd.read_csv(
         os.path.join(
             args.gtfdir, 'gencode.v31.primary_assembly.annotation.exon.tab'),
         sep='\t', dtype={'start': int, 'end': int})
-    gtf_exon = gtf_exon.to_dict('index')
-    gtf_ts_exon = build_ts_exon_dict(gtf_exon)
+    gtf_exon = gtf_exon[gtf_exon['transcript_id'].isin(gtf_ts['transcript_id'])]
+    
     gtf_cds = pd.read_csv(
         os.path.join(
             args.gtfdir, 'gencode.v31.primary_assembly.annotation.CDS.tab'),
         sep='\t', dtype={'start': int, 'end': int})
+    gtf_cds = gtf_cds[gtf_cds['transcript_id'].isin(gtf_ts['transcript_id'])]
+    
+    # cr_ts = build_cgranges(gtf_ts)
+    cr_ts = build_cgranges(gtf_ts)
+
+    # convert to dict
+    gtf_ts = gtf_ts.to_dict('index')
+    gtf_exon = gtf_exon.to_dict('index')
     gtf_cds = gtf_cds.to_dict('index')
+
+    # build linking
+    gtf_ts_exon = build_ts_exon_dict(gtf_exon)
     gtf_ts_cds = build_ts_exon_dict(gtf_cds)
 
     genome = twobitreader.TwoBitFile(args.genome)
