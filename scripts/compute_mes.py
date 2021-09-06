@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument('-o', '--output', default='./mes_output.tab',
                         help='Output MaxEntScan score tab file')
     parser.add_argument(
-        '-p', '--npartitions', default=None,
+        '-p', '--npartitions', default=None, type=int,
         help='number of partitions to allocate to swifter')
     args = parser.parse_args()
     return args
