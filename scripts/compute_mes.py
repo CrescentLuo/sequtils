@@ -9,6 +9,7 @@ import swifter
 
 import pandas as pd
 
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description='MaxEntScan score for bed files')
@@ -18,30 +19,36 @@ def parse_args():
                         help='Genome fasta file(Indexed)')
     parser.add_argument('-o', '--output', default='./mes_output.tab',
                         help='Output MaxEntScan score tab file')
+    parser.add_argument(
+        '-p', '--npartitions', default=None,
+        help='number of partitions to allocate to swifter')
     args = parser.parse_args()
     return args
+
 
 def compute_mes(interval, matrix5, matrix3, genome):
     genome = pysam.FastaFile(genome)
     # 5ss 3bases in exon and 6 bases in intron
     # 3ss 20 bases in intron and 3 bases in exon
     if interval['strand'] == '+':
-        seq5 = genome.fetch(interval.chrom, interval.end-3, interval.end + 6).upper()
-        seq3 = genome.fetch(interval.chrom, interval.start - 20, interval.start + 3).upper()
+        seq5 = genome.fetch(interval.chrom, interval.end-3,
+                            interval.end + 6).upper()
+        seq3 = genome.fetch(
+            interval.chrom, interval.start - 20, interval.start + 3).upper()
     else:
         seq5 = reverse_complement(genome.fetch(
-                interval.chrom, interval.start - 6, interval.start + 3).upper())
+            interval.chrom, interval.start - 6, interval.start + 3).upper())
         seq3 = reverse_complement(genome.fetch(
-                interval.chrom, interval.end - 3, interval.end + 20).upper())
+            interval.chrom, interval.end - 3, interval.end + 20).upper())
     name_format_str = '{seq5}:{mes5}|{seq3}:{mes3}'
     if set(seq5).issubset('ACGT') and set(seq3).issubset('ACGT'):
-            mes5 = maxent_fast.score5(seq5, matrix=matrix5)
-            mes3 = maxent_fast.score3(seq3, matrix=matrix3)
-            interval['seq5'] = seq5
-            interval['mes5'] = mes5
-            interval['seq3'] = seq3
-            interval['mes3'] = mes3
-            
+        mes5 = maxent_fast.score5(seq5, matrix=matrix5)
+        mes3 = maxent_fast.score3(seq3, matrix=matrix3)
+        interval['seq5'] = seq5
+        interval['mes5'] = mes5
+        interval['seq3'] = seq3
+        interval['mes3'] = mes3
+
     else:
         interval['seq5'] = seq5
         interval['mes5'] = 'NA'
@@ -49,15 +56,19 @@ def compute_mes(interval, matrix5, matrix3, genome):
         interval['mes3'] = 'NA'
     return interval
 
+
 if __name__ == '__main__':
     args = parse_args()
-    mes_record = pd.read_csv(args.bed, sep='\t', names=['chrom','start','end','name','score','strand'])
+    mes_record = pd.read_csv(
+        args.bed, sep='\t',
+        names=['chrom', 'start', 'end', 'name', 'score', 'strand'])
 
     # load maxent mamtrix
     matrix5 = load_matrix5()
     matrix3 = load_matrix3()
 
-    mes_record = mes_record.swifter.apply(compute_mes, matrix5=matrix5, matrix3=matrix3, genome=args.genome, axis=1)
+    mes_record = mes_record.swifter.set_npartitions(npartitions=args.npartitions).apply(
+        compute_mes, matrix5=matrix5, matrix3=matrix3, genome=args.genome, axis=1)
     mes_record['mes5'] = pd.to_numeric(mes_record['mes5'])
     mes_record['mes3'] = pd.to_numeric(mes_record['mes3'])
     mes_mean = mes_record[['mes5', 'mes3']].mean()
