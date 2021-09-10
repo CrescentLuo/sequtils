@@ -183,7 +183,7 @@ if __name__ == '__main__':
     
     gtf_cds = pd.read_csv(
         os.path.join(
-            args.gtfdir, 'gencode.v31.primary_assembly.annotation.CDS.tab'),
+            args.gtfdir, 'gencode.v31.primary_assembly.annotation.cds.tab'),
         sep='\t', dtype={'start': int, 'end': int})
     gtf_cds = gtf_cds[gtf_cds['transcript_id'].isin(gtf_ts['transcript_id'])]
     
