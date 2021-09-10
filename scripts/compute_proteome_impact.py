@@ -53,6 +53,7 @@ def track_ts(
     exon_strand = exon['strand']
     # get the corresponding gene
     impact_isoform = set()
+    
     for ts_s, ts_e, ts_idx in cr_ts.overlap(
             exon_chrom, exon_s, exon_e):
         transcript_id = gtf_ts[ts_idx]['transcript_id']
@@ -135,7 +136,7 @@ def track_ts(
             else:
                 impact_isoform.add('Not Found-{}_{}_{}_{}'.format(c1_idx,c2_idx, ts_s, ts_e))
     if len(impact_isoform) ==0:
-        impact_isoform.add('False')
+        impact_isoform.add('False_no_overlap_ts')
     return ','.join(impact_isoform)
 
 
