@@ -173,6 +173,7 @@ if __name__ == '__main__':
         sep='\t',
         dtype={'start': int, 'end': int, 'cds_start': int, 'cds_end': int})
     gtf_ts = gtf_ts[gtf_ts['gene_type'] == 'protein_coding']
+    print("# of protein_coding tsl 1&2 transcripts: {}".format(gtf_ts.shape[0]))
     gtf_ts = gtf_ts[gtf_ts['transcript_support_level'].isin(['1',
                                                           '2'])]
     print("# of protein_coding tsl 1&2 transcripts: {}".format(gtf_ts.shape[0]))
