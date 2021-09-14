@@ -175,27 +175,29 @@ if __name__ == '__main__':
     gtf_ts = gtf_ts[gtf_ts['gene_type'] == 'protein_coding']
     gtf_ts = gtf_ts[gtf_ts['transcript_support_level'].isin(['1',
                                                           '2'])]
-    
+    print("# of protein_coding tsl 1&2 transcripts: {}".format(gtf_ts.shape[0]))
+     
     gtf_exon = pd.read_csv(
         os.path.join(
             args.gtfdir, 'gencode.v31.primary_assembly.annotation.exon.tab'),
         sep='\t', dtype={'start': int, 'end': int})
     gtf_exon = gtf_exon[gtf_exon['transcript_id'].isin(gtf_ts['transcript_id'])]
+    print("# of exons: {}".format(gtf_exon.shape[0]))
     
     gtf_cds = pd.read_csv(
         os.path.join(
             args.gtfdir, 'gencode.v31.primary_assembly.annotation.cds.tab'),
         sep='\t', dtype={'start': int, 'end': int})
     gtf_cds = gtf_cds[gtf_cds['transcript_id'].isin(gtf_ts['transcript_id'])]
+    print("# of cds: {}".format(gtf_cds.shape[0]))
     
     # cr_ts = build_cgranges(gtf_ts)
     cr_ts = build_cgranges(gtf_ts)
-
+    
     # convert to dict
     gtf_ts = gtf_ts.to_dict('index')
     gtf_exon = gtf_exon.to_dict('index')
     gtf_cds = gtf_cds.to_dict('index')
-
     # build linking
     gtf_ts_exon = build_ts_exon_dict(gtf_exon)
     gtf_ts_cds = build_ts_exon_dict(gtf_cds)
