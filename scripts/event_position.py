@@ -25,13 +25,21 @@ def get_args():
 
 def build_cgranges(df):
     g = cr.cgranges()
+    max_intron_dict = dict()
     for idx, row in tqdm(df.iterrows(), total=df.shape[0]):
         seqname = row['seqname']
         start = row['start']
         end = row['end']
+        name = row['name']
+        ts_id = name.split('_')[0]
+        intron_num = int(name.split('_')[-1])
         g.add(seqname, start, end, idx)
+        if ts_id not in max_intron_dict:
+            max_intron_dict[ts_id] = 0
+        if intron_num > max_intron_dict[ts_id]:
+            max_intron_dict[ts_id] = intron_num
     g.index()
-    return g
+    return g,max_intron_dict
 
 
 if __name__ == '__main__':
@@ -41,7 +49,7 @@ if __name__ == '__main__':
         sep='\t',names=['seqname', 'start', 'end', 'name', 'score', 'strand'],
         dtype={'start': int, 'end': int})
     # cr_ts = build_cgranges(gtf_ts)
-    cr_intron = build_cgranges(gtf_intron)
+    cr_intron,max_intron_dict = build_cgranges(gtf_intron)
     
     # convert to dict
     gtf_intron = gtf_intron.to_dict('index')
@@ -49,15 +57,32 @@ if __name__ == '__main__':
     exon_target = pd.read_csv(
         args.bed, sep='\t',
         names=['chrom', 'start', 'end', 'name', 'score', 'strand'])
-    exon['intron_idx'] =-1
+    exon_target['intron_idx'] =-1
+    exon_target['intron_idx_rev'] =-1
+    exon_target['first/last intron'] = 'False'                
     for idx, exon in tqdm(exon_target.iterrows(), total=exon_target.shape[0]):
         # for idx, exon in exon_target.iterrows():
         chrom = exon['chrom']
         start = exon['start']
         end = exon['end']
+        pos = 0
         for intron_s, intron_end, intron_idx in cr_intron.overlap(chrom, start, end):
-            break
-        intron_name = gtf_intron[intron_idx]['name']
-        intron_idx = int(intron_name.split('_')[-1])
-        exon['intron_idx'] = intron_idx
+            pos = intron_idx
+        intron_name = gtf_intron[pos]['name']
+        ts_id = intron_name.split('_')[0]
+        intron_idx = int(intron_name.split('_')[1])
+        intron_idx_rev = max_intron_dict[ts_id] - intron_idx + 1
+        exon_target.at[idx,'intron_idx'] = intron_idx
+        exon_target.at[idx,'intron_idx_rev'] = intron_idx_rev
+        if intron_idx == 1:
+            exon_target.at[idx,'first/last intron'] = 'first'
+        if intron_idx == 2:
+            exon_target.at[idx,'first/last intron'] = 'second'
+        if intron_idx_rev == 1:
+            exon_target.at[idx,'first/last intron'] = 'last'
+        if intron_idx_rev == 2:
+            exon_target.at[idx,'first/last intron'] = 'second to last'
+        
+
+    print(exon_target.head())
     exon_target.to_csv(args.output, sep='\t', index=False)
