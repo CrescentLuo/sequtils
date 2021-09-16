@@ -51,9 +51,9 @@ def check_frame_shift(exon_seq):
     coden_len = 3
     if len(exon_seq) % coden_len != 0:
         #return('frame shift_{}_{}'.format(len(exon_seq, transcript_id)))
-        return('Frame shift')
+        return('ORF-disrupting')
     else:
-        return('In frame insertion')
+        return('ORF-preserving)')
 
 
 def track_ts(
@@ -76,10 +76,10 @@ def track_ts(
             continue
         # skip transcripts without cds region (cds_start == cds_end)
         if gtf_ts[ts_idx]['cds_start'] == gtf_ts[ts_idx]['cds_end']:
-            impact_isoform.add('False-No-CDS')
+            impact_isoform.add('ORF-preserving)')
             continue
         elif not check_intersect([exon_s, exon_e], [gtf_ts[ts_idx]['cds_start'],gtf_ts[ts_idx]['cds_end']], 1,0):
-            impact_isoform.add('False-out-CDS')
+            impact_isoform.add('ORF-preserving)')
             continue
         c1_idx = -1
         c2_idx = -1
@@ -129,7 +129,7 @@ def track_ts(
             # frame shift
             ptc_pos, ptc_seq = search_ptc(exon_seq)
             if ptc_pos != -1:
-                impact_isoform.add('PTC_{}'.format(ptc_seq))
+                impact_isoform.add('ORF-disrupting')
             
             impact_isoform.add(check_frame_shift(exon_seq))
             
@@ -141,7 +141,15 @@ def track_ts(
             else:
                 impact_isoform.add('Not Found-{}_{}_{}_{}'.format(c1_idx,c2_idx, ts_s, ts_e))
     if len(impact_isoform) ==0:
-        impact_isoform.add('False_no_overlap_ts')
+        impact_isoform.add('ORF-preserving')
+    impact_isoform = set(impact_isoform)
+    if len(impact_isoform) == 1:
+        if 'ORF-disrupting' in impact_isoform:
+            return 'ORF-disrupting'
+        else:
+            return 'ORF-preserving'
+    else:
+        return 'ORF-disrupting-isoform'
     return ','.join(impact_isoform)
 
 
@@ -211,8 +219,11 @@ if __name__ == '__main__':
     genome = twobitreader.TwoBitFile(args.genome)
     exon_target = pd.read_csv(
         args.bed, sep='\t',
+        header=None,
+        usecols=list(range(6)),
         names=['chrom', 'start', 'end', 'name', 'score', 'strand'])
     impact_flag_list = list()
+    print(exon_target.head())
     for idx, exon in tqdm(exon_target.iterrows(), total=exon_target.shape[0]):
         # for idx, exon in exon_target.iterrows():
         

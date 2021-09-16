@@ -2,8 +2,14 @@ import pandas as pd
 import swifter
 import re
 
-# nucleotides sequence utils
+# check chrom
 
+def check_chrom(chrom):
+    ref_chrom = '^chr([1-9]|[12][0-2]|[X]|[Y])$'
+    return re.match(ref_chrom, chrom)
+
+
+# nucleotides sequence utils
 
 def reverse_complement(seq):
     # return reverse complementary sequence of input
