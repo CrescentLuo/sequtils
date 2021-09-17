@@ -51,7 +51,7 @@ if __name__ == '__main__':
         args.intron,
         sep='\t',names=['seqname', 'start', 'end', 'name', 'score', 'strand'],
         dtype={'start': int, 'end': int})
-    gtf_intron = gtf_intron.swifter.apply(calculate_intron_len)
+    gtf_intron = gtf_intron.swifter.apply(calculate_intron_len, axis=1)
     # cr_ts = build_cgranges(gtf_ts)
     cr_intron,max_intron_dict = build_cgranges(gtf_intron)
     
