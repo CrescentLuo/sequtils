@@ -2,7 +2,7 @@ import argparse
 import pyBigWig as pyBW
 import numpy as np
 import pandas as pd
-from utils import check_chrom
+from utils import check_chrom_re
 import swifter
 
 # Phastcons BigWig at :
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     phastcons_record = pd.read_csv(
         args.bed, sep='\t', usecols=list(range(6)),
         names=['chrom', 'start', 'end', 'name', 'score', 'strand'])
-    phastcons_record = phastcons_record[check_chrom(phastcons_record['chrom'].str)]
+    phastcons_record = phastcons_record[phastcons_record['chrom'].str.match(check_chrom_re())]
     with pyBW.open(args.phastcons) as phastcons_bw:
         phastcons_record = phastcons_record.swifter.apply(
             get_phastcons, phastcons_bw=phastcons_bw, axis=1)

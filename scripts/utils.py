@@ -4,9 +4,9 @@ import re
 
 # check chrom
 
-def check_chrom(chrom):
-    ref_chrom = '^chr([1-9]|[12][0-2]|[X]|[Y])$'
-    return re.match(ref_chrom, chrom)
+def check_chrom_re():
+    ref_chrom_re = '^chr([1-9]|[12][0-2]|[X]|[Y])$'
+    return ref_chrom_re
 
 
 # nucleotides sequence utils

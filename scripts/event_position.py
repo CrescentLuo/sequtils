@@ -41,6 +41,9 @@ def build_cgranges(df):
     g.index()
     return g,max_intron_dict
 
+def calculate_intron_len(intron):
+    intron['length'] = intron['end'] - intron['start']
+    return intron
 
 if __name__ == '__main__':
     args = get_args()
@@ -48,6 +51,7 @@ if __name__ == '__main__':
         args.intron,
         sep='\t',names=['seqname', 'start', 'end', 'name', 'score', 'strand'],
         dtype={'start': int, 'end': int})
+    gtf_intron = gtf_intron.swifter.apply(calculate_intron_len)
     # cr_ts = build_cgranges(gtf_ts)
     cr_intron,max_intron_dict = build_cgranges(gtf_intron)
     
@@ -59,7 +63,8 @@ if __name__ == '__main__':
         names=['chrom', 'start', 'end', 'name', 'score', 'strand'])
     exon_target['intron_idx'] =-1
     exon_target['intron_idx_rev'] =-1
-    exon_target['first/last intron'] = 'False'                
+    exon_target['first/last intron'] = 'False'    
+    exon_target['intron_len'] = -1            
     for idx, exon in tqdm(exon_target.iterrows(), total=exon_target.shape[0]):
         # for idx, exon in exon_target.iterrows():
         chrom = exon['chrom']
@@ -74,6 +79,7 @@ if __name__ == '__main__':
         intron_idx_rev = max_intron_dict[ts_id] - intron_idx + 1
         exon_target.at[idx,'intron_idx'] = intron_idx
         exon_target.at[idx,'intron_idx_rev'] = intron_idx_rev
+        exon_target.at[idx,'intron_len'] = gtf_intron[pos]['intron_len']
         if intron_idx == 1:
             exon_target.at[idx,'first/last intron'] = 'first'
         if intron_idx == 2:
