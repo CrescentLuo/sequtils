@@ -42,7 +42,7 @@ def build_cgranges(df):
     return g,max_intron_dict
 
 def calculate_intron_len(intron):
-    intron['length'] = intron['end'] - intron['start']
+    intron['intron_len'] = intron['end'] - intron['start']
     return intron
 
 if __name__ == '__main__':
