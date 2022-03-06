@@ -226,6 +226,25 @@ def check_intersect(coord_1, coord_2, zero_based_1=True, zero_based_2=True):
     else:
         return True
 
+def build_ts_dict(df):
+    ts_dict = dict()
+    for idx in df:
+        transcript_id = df[idx]['transcript_id']
+        if transcript_id not in ts_dict:
+            ts_dict[transcript_id] = list()
+        ts_dict[transcript_id].append(idx)
+    return ts_dict
+
+def concat_interval_seq(ts_id, ts_dict, interval_set, genome_seq):
+    concat_seq = ""
+    for interval_id in ts_dict[ts_id]:
+        chrom = interval_set[interval_id]['chrom']
+        strand = interval_set[interval_id]['strand']
+        start = int(interval_set[interval_id]['start'])
+        end = int(interval_set[interval_id]['end'])
+        concat_seq = genome_seq[chrom][start][end] if strand == '+' else reverse_complement(genome_seq[chrom][start][end])
+    return concat_seq
+    
 
 def one_based_start(s):
     return s+1

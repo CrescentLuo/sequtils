@@ -81,6 +81,8 @@ def track_ts(
         elif not check_intersect([exon_s, exon_e], [gtf_ts[ts_idx]['cds_start'],gtf_ts[ts_idx]['cds_end']], 1,0):
             impact_isoform.add('ORF-preserving)')
             continue
+        
+        """
         c1_idx = -1
         c2_idx = -1
         last_eej_idx = -1
@@ -132,8 +134,6 @@ def track_ts(
                 impact_isoform.add('ORF-disrupting')
             
             impact_isoform.add(check_frame_shift(exon_seq))
-            
-
            
         else:
             if c1_idx == -1 or c2_idx == -1:
@@ -151,7 +151,7 @@ def track_ts(
     else:
         return 'ORF-disrupting-isoform'
     return ','.join(impact_isoform)
-
+    """
 
 def get_dist_last_eej(ts_idx, gtf_ts, gtf_exon, gtf_ts_exon):
 
