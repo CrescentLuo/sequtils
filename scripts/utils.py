@@ -8,7 +8,11 @@ def check_chrom_re():
     ref_chrom_re = '^chr([1-9]|[12][0-2]|[X]|[Y])$'
     return ref_chrom_re
 
+def one_based_start(s):
+    return s+1
 
+def zero_based_start(s):
+    return s-1
 # nucleotides sequence utils
 
 def reverse_complement(seq):
@@ -236,15 +240,19 @@ def build_ts_dict(df):
     return ts_dict
 
 def concat_interval_seq(ts_id, ts_dict, interval_set, genome_seq):
-    concat_seq = ""
+    concat_seq = ''
+    strand = '+'
     for interval_id in ts_dict[ts_id]:
-        chrom = interval_set[interval_id]['chrom']
-        strand = interval_set[interval_id]['strand']
+        chrom = interval_set[interval_id]['seqname']
+        if interval_set[interval_id]['strand'] == '-':
+            strand = '-'
         start = int(interval_set[interval_id]['start'])
+        start = zero_based_start(start)
         end = int(interval_set[interval_id]['end'])
-        concat_seq = genome_seq[chrom][start][end] if strand == '+' else reverse_complement(genome_seq[chrom][start][end])
+        concat_seq = concat_seq + genome_seq.fetch(chrom,start,end)
+    if strand == '-':
+        return reverse_complement(concat_seq)
     return concat_seq
     
 
-def one_based_start(s):
-    return s+1
+
