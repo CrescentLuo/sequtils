@@ -1,5 +1,6 @@
 import pandas as pd
 import swifter
+import itertools
 import re
 
 # check chrom
@@ -254,5 +255,42 @@ def concat_interval_seq(ts_id, ts_dict, interval_set, genome_seq):
         return reverse_complement(concat_seq)
     return concat_seq
     
-
-
+def ambiguity_nt(seq):
+    '''
+    N = A or C or G or T (any)
+    B = C or G or T (not A)
+    D = A or G or T (not C)
+    H = A or C or T (not G)
+    V = A or C or G (not T)
+    W = A or T (weak)
+    S = C or G (strong)
+    R = A or G (purine)
+    Y = C or T (pyrimidine)
+    M = A or C (amino)
+    K = G or T (keto)
+    '''
+    ambg_dict = {
+        'N':['A', 'C', 'G', 'T'],
+        'B':['C', 'G', 'T'],
+        'D':['A', 'G', 'T'],
+        'H':['A', 'C', 'T'],
+        'V':['A', 'C', 'G'],
+        'W':['A', 'T'],
+        'S':['C', 'G'],
+        'R':['A', 'G'],
+        'Y':['C', 'T'],
+        'M':['A', 'C'],
+        'K':['G', 'T'],
+        'A':['A'],
+        'T':['T'],
+        'C':['C'],
+        'G':['G']
+    }
+    combinations = list()
+    for nt in seq:
+        combinations.append(ambg_dict[nt])
+    seq_permutations = list()
+    for id, comb_seq in enumerate(itertools.product(*combinations)):
+        comb_seq = ''.join(comb_seq)
+        seq_permutations.append(comb_seq)
+    return seq_permutations
