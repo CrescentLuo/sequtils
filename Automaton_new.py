@@ -23,23 +23,22 @@ class node:
 class Automaton:
     def __init__(self, max_len = 21) -> None:
         self.tr = np.zeros((max_len, 4, 4), dtype = int)
+        self.fail = np.zeros((max_len,4), dtype = int)
+        self.idxnt = {'A':0, 'C':1, 'G':2, 'T':3}
         self.root = node(None)
         self.root.fail = self.root
         self.root.parent = node(None)
         self.root.parent.fail = self.root
 
     def insert(self, word, tag=None):
-        root = self.root
+        idxnt = self.idxnt
         for idx, char in enumerate(word):
-            if char in root.children:
-                root = root.children[char]
+            if self.tr[idx, father, idxnt[char]] == 1:
                 continue
-            node_char = node(char)
-            node_char.parent = root 
-            root.children[char] = node_char
-            root.count +=1
+            else:
+                self.tr[idx, father, idxnt[char]] = 1
             if idx == 0:
-                node_char.fail = self.root
+                self.fail[idx, ]
             root = node_char
         root.tag = tag
         root.is_end = True
